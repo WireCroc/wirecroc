@@ -1,0 +1,3 @@
+[submodule "libwrc"]
+	path = libwrc
+	url = https://github.com/WireCroc/libwrc

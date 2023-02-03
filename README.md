@@ -1,5 +1,5 @@
 # Wirecroc
-**Wirecroc is a network traffic sniffer, for Linux, macOS and other Unix and Unix-like operating systems. It uses TUI, a user interface library, and libwrc packet capture and filtering libraries.**
+**Wirecroc is a lightweight network traffic sniffer, for Linux, macOS and other Unix and Unix-like operating systems. It uses Ncurses, a user interface library, and libwrc packet capture and filtering libraries.**
 
 ## Installation
 

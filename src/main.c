@@ -1,17 +1,14 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ncurses.h>
 #include <wrc/wrc.h>
 
-int main(void) {
+typedef struct {
+    size_t x;
+    size_t y;
+} WVec2;
 
-    initscr();
-    noecho();
-
-    printw("Wirecroc");
-    
-    getch();
-    endwin();
-    
+int main(int argc, char** argv) {
     return 0;
 }

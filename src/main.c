@@ -3,7 +3,7 @@
 #include <ncurses.h>
 #include <wrc/wrc.h>
 #include <pthread.h>
-#include <wrc/wrc/wrc.h>
+#include "../libwrc/src/wrc.h"
 
 typedef struct {
     size_t x;
@@ -12,23 +12,29 @@ typedef struct {
 
 void* wrc_sys(void*);
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv) {    
     wrc sys;
+    wc_err err;
     wrc_default(&sys);
     wc_iflist ifc = wrc_get_interfaces();
 
+    err = wrc_error(ERR_PASS);
+    
     if (argc <= 1) {
-        fprintf(stderr, "Error: please choose interface\n\nExample \n\t$ wirecroc <interface index> \n\nChoose Interface:\n");
+        fprintf(stderr, "Error: please choose interface\n\nExample \n\t$ sudo wirecroc <IFC IDX> \n\nChoose Interface:\n");
         for (int i = 0; i < ifc.len; i++)
             fprintf(stderr, "%d:\n    %s ->\n       mtu: %lu\n       flag: %d\n\n", i, ifc.ifc[i].name, ifc.ifc[i].mtu, ifc.ifc[i].flag);
-        return 1;
+        return ERR_IFC;
+    } else if (err.code == ERR_SUDO) {
+        fprintf(stderr, "Error: please run program with sudo\n\nExample \n\t$ sudo wirecroc <IFC IDX> \n\n");
+        return ERR_SUDO;
     } else {
         int ifcn = atoi(argv[1]);
 
         int opts = wrc_setopts(&sys, ifc.ifc[ifcn], PA_NULL, 0);
         if (opts != 0) {
             printf("wrc_setopts error\n");
-            exit(0);
+            exit(ERR_SETOPTS);
         }
     }
     
@@ -50,14 +56,16 @@ int main(int argc, char** argv) {
     };
     
     keypad(stdscr, TRUE);
-    printw("x: %zu, y: %zu, pa size: %zu", vec.x, vec.y, sizeof(pa));
 
-    WINDOW* pwin = newwin(0, vec.x - 10, vec.y / 6, 5);
+    WINDOW* pwin = newwin(vec.y / 1.2, vec.x - 10, 0, 5);
+    WINDOW* cwin = newwin(0, vec.x - 10, vec.y / 1.2, 5);
     box(pwin, 0, 0);
-
+    box(cwin, 0, 0);
+    
     refresh();
     wrefresh(pwin);
     keypad(pwin, TRUE);
+    scrollok(pwin, TRUE);
     
     while (TRUE) {
         for (int i = 0; i < 3; i++) {

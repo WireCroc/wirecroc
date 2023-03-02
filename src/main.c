@@ -1,16 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ncurses.h>
-#include <wrc/wrc.h>
-#include <pthread.h>
-#include "../libwrc/src/wrc.h"
-
-typedef struct {
-    size_t x;
-    size_t y;
-} WVec2;
-
-void* wrc_sys(void*);
+#include "wirecroc.h"
 
 int main(int argc, char** argv) {    
     wrc sys;
@@ -106,10 +94,76 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+void cap_sys(wc_pa p, FILE * fp) {
+    memset(buf, 0, MAX_BUF_SIZE); 
+    for (int i = 0; i < MAX_PA; i++) {
+        switch (p.p[i]) {
+        case PA_ETH:
+            char* tmpb = wc_format(ETH_FMT,
+                                   p.eth.source,
+                                   p.eth.dest
+                );
+            fprintf(fp, tmpb);
+            buf[i] = tmpb;
+            break;
+        case PA_IP:
+            char* tmpb = wc_format(IP_FMT,
+                                   p.ip.source,
+                                   p.ip.dest,
+                                   p.ip.version,
+                                   p.ip.ttl,
+                                   p.ip.tos,
+                                   p.ip.tl,
+                                   p.ip.ihl,
+                                   p.ip.hchs,
+                                   p.ip.ident,
+                                   p.ip.proto
+                );
+            fprintf(fp, tmpb);
+            buf[i] = tmpb;
+            break;
+        case PA_ARP:
+            char* tmpb = wc_format(ARP_FMT,
+                                   p.arp.hw_t,
+                                   p.arp.p_t,
+                                   p.arp.hw_len,
+                                   p.arp.p_len,
+                                   p.arp.opcode,
+                                   p.arp.sender_mac,
+                                   p.arp.target_mac,
+                                   p.arp.sender_ip,
+                                   p.arp.target_ip
+                );
+            fprintf(fp, tmpb);
+            buf[i] = tmpb;
+            break;
+        case PA_TCP:
+            char* tmpb = wc_format(TCP_FMT,
+                                   pa.tcp.window,
+                                   pa.tcp.ack_sequence,
+                                   pa.tcp.sequence,
+                                   pa.tcp.source,
+                                   pa.tcp.dest
+                );
+            fprintf(fp, tmpb);
+            buf[i] = tmpb;
+            break;
+        case PA_UDP:
+            char* tmpb = wc_format(UDP_FMT,
+                                   pa.udp.source,
+                                   pa.udp.dest,
+                );
+            fprintf(fp, tmpb);
+            buf[i] = tmpb;
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 void* wrc_sys(void* w) {
     wrc* th_w = (wrc*)w;
-
-    printf("%d\n", th_w->fd);
     
     return NULL;
 }

@@ -1,6 +1,8 @@
 #include "wirecroc.h"
 
 int main(int argc, char** argv) {    
+    unsigned char* buf = malloc(sizeof(unsigned char) * 128);
+    
     wrc sys;
     wc_err err;
     wrc_default(&sys);
@@ -9,19 +11,19 @@ int main(int argc, char** argv) {
     err = wrc_error(ERR_PASS);
     
     if (argc <= 1) {
-        fprintf(stderr, "Error: please choose interface\n\nExample \n\t$ sudo wirecroc <IFC IDX> \n\nChoose Interface:\n");
+        fprintf(stderr, "%sError%s please choose interface\n\n%sExample%s \n\t$ sudo wirecroc <IFC IDX> \n\nChoose Interface:\n", KRED, RESET, KCYN, RESET);
         for (int i = 0; i < ifc.len; i++)
-            fprintf(stderr, "%d:\n    %s ->\n       mtu: %lu\n       flag: %d\n\n", i, ifc.ifc[i].name, ifc.ifc[i].mtu, ifc.ifc[i].flag);
+            fprintf(stderr, "%d:\n    %s%s%s ->\n       mtu: %lu\n       flag: %d\n\n", i, KGRN, ifc.ifc[i].name, RESET, ifc.ifc[i].mtu, ifc.ifc[i].flag);
         return ERR_IFC;
     } else if (err.code == ERR_SUDO) {
-        fprintf(stderr, "Error: please run program with sudo\n\nExample \n\t$ sudo wirecroc <IFC IDX> \n\n");
+        fprintf(stderr, "%sError%s please run program with sudo\n\n%sExample%s \n\t$ sudo wirecroc <IFC IDX> \n\n", KRED, RESET, KCYN, RESET);
         return ERR_SUDO;
     } else {
         int ifcn = atoi(argv[1]);
 
         int opts = wrc_setopts(&sys, ifc.ifc[ifcn], PA_NULL, 0);
         if (opts != 0) {
-            printf("wrc_setopts error\n");
+            fprintf(stderr, "%sError%s wrc_setopts error\n", KRED, RESET);
             exit(ERR_SETOPTS);
         }
     }
@@ -74,10 +76,10 @@ int main(int argc, char** argv) {
         case KEY_DOWN:
             plc++;
             if (plc == 3)
-                plc = 2;
+                plc = 0;
             break;
-        case KEY_LEFT:
-            wprintw(pwin, "%s", pa[plc]);
+        case KEY_ENTER:
+            wprintw(pwin, "%s       ", pa[plc]);
             break;
         default:
             break;
@@ -90,71 +92,88 @@ int main(int argc, char** argv) {
     getch();
     endwin();
     wrc_destroy(&sys);
+    free(buf);
     
     return 0;
 }
 
-void cap_sys(wc_pa p, FILE * fp) {
-    memset(buf, 0, MAX_BUF_SIZE); 
+void buffer_new(Buffer* buf) {
+    buf->len = 0;
+}
+
+void buffer_add(Buffer* buf, void* data, buffer_t type) {
+    if (buf->len <= MAX_BUF_SIZE - 1)
+        goto end;
+    
+    buf->data[buf->len] = data;
+    buf->t[buf->len] = type;
+end:
+    buf->len++;
+}
+
+void cap_sys(wc_pa p, FILE * fp, void* dt) {
+    char* tmpb;
+    Buffer* buff = (Buffer*)dt;
+    
     for (int i = 0; i < MAX_PA; i++) {
         switch (p.p[i]) {
         case PA_ETH:
-            char* tmpb = wc_format(ETH_FMT,
-                                   p.eth.source,
-                                   p.eth.dest
+            tmpb = wc_format(ETH_FMT,
+                             p.eth.source,
+                             p.eth.dest
                 );
-            fprintf(fp, tmpb);
-            buf[i] = tmpb;
+            buffer_add(buff, (void*) tmpb, CHAR_P_T);
+            fprintf(fp, "%s\n", tmpb);
             break;
         case PA_IP:
-            char* tmpb = wc_format(IP_FMT,
-                                   p.ip.source,
-                                   p.ip.dest,
-                                   p.ip.version,
-                                   p.ip.ttl,
-                                   p.ip.tos,
-                                   p.ip.tl,
-                                   p.ip.ihl,
-                                   p.ip.hchs,
-                                   p.ip.ident,
-                                   p.ip.proto
+            tmpb = wc_format(IP_FMT,
+                             p.ip.source,
+                             p.ip.dest,
+                             p.ip.version,
+                             p.ip.ttl,
+                             p.ip.tos,
+                             p.ip.tl,
+                             p.ip.ihl,
+                             p.ip.hchs,
+                             p.ip.ident,
+                             p.ip.proto
                 );
-            fprintf(fp, tmpb);
-            buf[i] = tmpb;
+            buffer_add(buff, (void*) tmpb, CHAR_P_T);
+            fprintf(fp, "%s\n", tmpb);
             break;
         case PA_ARP:
-            char* tmpb = wc_format(ARP_FMT,
-                                   p.arp.hw_t,
-                                   p.arp.p_t,
-                                   p.arp.hw_len,
-                                   p.arp.p_len,
-                                   p.arp.opcode,
-                                   p.arp.sender_mac,
-                                   p.arp.target_mac,
-                                   p.arp.sender_ip,
-                                   p.arp.target_ip
+            tmpb = wc_format(ARP_FMT,
+                             p.arp.hw_t,
+                             p.arp.p_t,
+                             p.arp.hw_len,
+                             p.arp.p_len,
+                             p.arp.opcode,
+                             p.arp.sender_mac,
+                             p.arp.target_mac,
+                             p.arp.sender_ip,
+                             p.arp.target_ip
                 );
-            fprintf(fp, tmpb);
-            buf[i] = tmpb;
+            buffer_add(buff, (void*) tmpb, CHAR_P_T);
+            fprintf(fp, "%s\n", tmpb);
             break;
         case PA_TCP:
-            char* tmpb = wc_format(TCP_FMT,
-                                   pa.tcp.window,
-                                   pa.tcp.ack_sequence,
-                                   pa.tcp.sequence,
-                                   pa.tcp.source,
-                                   pa.tcp.dest
+            tmpb = wc_format(TCP_FMT,
+                             p.tcp.window,
+                             p.tcp.ack_sequence,
+                             p.tcp.sequence,
+                             p.tcp.source,
+                             p.tcp.dest
                 );
-            fprintf(fp, tmpb);
-            buf[i] = tmpb;
+            buffer_add(buff, (void*) tmpb, CHAR_P_T);
+            fprintf(fp, "%s\n", tmpb);
             break;
         case PA_UDP:
-            char* tmpb = wc_format(UDP_FMT,
-                                   pa.udp.source,
-                                   pa.udp.dest,
+            tmpb = wc_format(UDP_FMT,
+                             p.udp.source,
+                             p.udp.dest
                 );
-            fprintf(fp, tmpb);
-            buf[i] = tmpb;
+            buffer_add(buff, (void*) tmpb, CHAR_P_T);
+            fprintf(fp, "%s\n", tmpb);
             break;
         default:
             break;
@@ -164,6 +183,12 @@ void cap_sys(wc_pa p, FILE * fp) {
 
 void* wrc_sys(void* w) {
     wrc* th_w = (wrc*)w;
-    
+    Buffer b;
+    buffer_new(&b);
+
+    printf("%d\n", th_w->fd);
+
+    wrc_cap(w, 1, cap_sys, (void*)&b);
+      
     return NULL;
 }
